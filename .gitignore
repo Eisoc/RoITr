@@ -1,0 +1,6 @@
+/data/*
+**/__pycache__/*
+**/build/*
+**/est_traj/*
+*.pth
+**/snapshot/*
