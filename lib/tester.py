@@ -67,6 +67,8 @@ class Tester(Trainer):
                 if self.config.benchmark == '4DMatch' or self.config.benchmark == '4DLoMatch':
                     data['metric_index_list'] = inputs['metric_index']
                 torch.save(data, f'{self.snapshot_dir}/{self.config.benchmark}/{idx}.pth')
+                print(f'saved in: {self.snapshot_dir}/{self.config.benchmark}/{idx}.pth')
+                print("test")
                 ###########################################################
 
     
@@ -82,7 +84,7 @@ def get_trainer(config):
     :return:
     '''
 
-    if config.dataset == 'tdmatch' or config.dataset == 'fdmatch':
+    if config.dataset == 'tdmatch' or config.dataset == 'fdmatch' or config.dataset == 'hx':
         return Tester(config)
     else:
         raise NotImplementedError

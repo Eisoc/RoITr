@@ -41,9 +41,9 @@ def extract_correspondence(dist, major='row'):
 
 
 
-def benchmark_registration(desc, exp_dir, whichbenchmark, n_points, ransac_with_mutual=False, inlier_ratio_threshold=0.05):
+def benchmark_registration(desc, exp_dir, whichbenchmark, n_points, ransac_with_mutual=False, inlier_ratio_threshold=0.05, data_split="test"):
     gt_folder = f'configs/benchmarks/{whichbenchmark}'
-    exp_dir = f'{exp_dir}/{whichbenchmark}/{n_points}'
+    exp_dir = f'{exp_dir}/{data_split}/{n_points}'
     if (not os.path.exists(exp_dir)):
         os.makedirs(exp_dir)
 
@@ -94,28 +94,35 @@ def benchmark_registration(desc, exp_dir, whichbenchmark, n_points, ransac_with_
 
     tsfm_est = np.array(tsfm_est)
 
+    with open(f'{exp_dir}/transforms.txt', 'w') as f:
+        for i, arr in enumerate(tsfm_est):
+            f.write(f"transform {i}:\n")
+            np.savetxt(f, arr, fmt='%.4f')  # 保存每个数组到文件，格式化为小数点后四位
+            f.write("\n") 
+
+
     ########################################
     # wirte the estimated trajectories
-    write_est_trajectory(gt_folder, exp_dir, tsfm_est)
+    # write_est_trajectory(gt_folder, exp_dir, tsfm_est)
 
     ########################################
     # evaluate the results, here FMR and Inlier ratios are all average twice
-    inlier_ratio_list = np.array(inlier_ratio_list)
-    benchmark(exp_dir, gt_folder)
-    split = get_scene_split(whichbenchmark)
+    # inlier_ratio_list = np.array(inlier_ratio_list)
+    # benchmark(exp_dir, gt_folder)
+    # split = get_scene_split(whichbenchmark)
 
-    inliers = []
-    fmrs = []
-    inlier_ratio_thres = 0.05
-    for ele in split:
-        c_inliers = inlier_ratio_list[ele[0]:ele[1]]
-        inliers.append(np.mean(c_inliers))
-        fmrs.append((np.array(c_inliers) > inlier_ratio_thres).mean())
-    with open(os.path.join(exp_dir, 'result'), 'a') as f:
-        f.write(f'Inlier ratio: {np.mean(inliers):.3f} : +- {np.std(inliers):.3f}\n')
-        f.write(f'Feature match recall: {np.mean(fmrs):.3f} : +- {np.std(fmrs):.3f}\n')
+    # inliers = []
+    # fmrs = []
+    # inlier_ratio_thres = 0.05
+    # for ele in split:
+    #     c_inliers = inlier_ratio_list[ele[0]:ele[1]]
+    #     inliers.append(np.mean(c_inliers))
+    #     fmrs.append((np.array(c_inliers) > inlier_ratio_thres).mean())
+    # with open(os.path.join(exp_dir, 'result'), 'a') as f:
+    #     f.write(f'Inlier ratio: {np.mean(inliers):.3f} : +- {np.std(inliers):.3f}\n')
+    #     f.write(f'Feature match recall: {np.mean(fmrs):.3f} : +- {np.std(fmrs):.3f}\n')
 
-    f.close()
+    # f.close()
 
 
 if __name__ == '__main__':
@@ -124,7 +131,8 @@ if __name__ == '__main__':
     parser.add_argument('--benchmark', default='3DLoMatch', type=str, help='[3DMatch, 3DLoMatch]')
     parser.add_argument('--n_points', default=1000, type=int, help='number of points used by RANSAC')
     parser.add_argument('--exp_dir', default='est_traj', type=str, help='export final results')
+    parser.add_argument('--split', default='test', type=str, help='output: est_traj/split')
     args = parser.parse_args()
     desc = sorted(glob.glob(f'{args.source_path}/*.pth'), key=natural_key)
-    benchmark_registration(desc, args.exp_dir, args.benchmark, args.n_points, ransac_with_mutual=False)
+    benchmark_registration(desc, args.exp_dir, args.benchmark, args.n_points, ransac_with_mutual=False, data_split=args.split)
 

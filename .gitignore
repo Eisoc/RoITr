@@ -3,4 +3,5 @@
 **/build/*
 **/est_traj/*
 *.pth
+*.pcd
 **/snapshot/*

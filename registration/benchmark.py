@@ -185,11 +185,11 @@ def write_trajectory(traj, metadata, filename, dim=4):
     with open(filename, 'w') as f:
         for idx in range(traj.shape[0]):
             # Only save the transfromation parameters for which the overlap threshold was satisfied
-            if metadata[idx][2]:
-                p = traj[idx, :, :].tolist()
-                f.write('\t'.join(map(str, metadata[idx])) + '\n')
-                f.write('\n'.join('\t'.join(map('{0:.12f}'.format, p[i])) for i in range(dim)))
-                f.write('\n')
+            # if metadata[idx][2]:
+            p = traj[idx, :, :].tolist()
+            # f.write('\t'.join(map(str, metadata[idx])) + '\n')
+            f.write('\n'.join('\t'.join(map('{0:.12f}'.format, p[i])) for i in range(dim)))
+            f.write('\n')
 
 
 def read_pairs(src_path, tgt_path, n_points):

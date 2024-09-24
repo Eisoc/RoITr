@@ -48,6 +48,7 @@ class TransitionDown(nn.Module):
     '''
     Down-sampling
     '''
+    # AAL。=降采样加PAM
     def __init__(self, in_planes, out_planes, num_heads=4, stride=1, nsample=16, factor=1):
         super().__init__()
         self.stride, self.nsample = stride, nsample
@@ -62,7 +63,7 @@ class TransitionDown(nn.Module):
                 n_o.append(count)
             n_o = torch.cuda.IntTensor(n_o)
             idx = pointops.furthestsampling(p, o, n_o).long()  # (m)
-
+            # 降采样
 
             n_p = p[idx, :]  # (m, 3)
             n_n = n[idx, :]  # (m, 3)
@@ -76,6 +77,7 @@ class TransitionDown(nn.Module):
         c_p, c_n = p[group_idx, :], n[group_idx, :]
         ppf = calc_ppf_gpu(n_p, n_n, c_p, c_n) # (m, nsample, 4]
 
+        # PAM
         x = self.transformer(x, idx, group_idx, ppf)
         return [n_p, x, n_o, n_n, None, None, idx]
 
@@ -84,6 +86,7 @@ class TransitionUp(nn.Module):
     '''
     Up-sampling
     '''
+    # TUL，理应为上采样加PAM，丢失了PAM
     def __init__(self, in_planes, out_planes=None):
         super().__init__()
         if out_planes is None:
@@ -121,6 +124,7 @@ class RIPointTransformerBlock(nn.Module):
     '''
     Rotation-invariant point transformer block
     '''
+    # PAL = PAM 加 norm，add，relu
     expansion = 1
 
     def __init__(self, in_planes, planes, num_heads=4, nsample=16, factor=1):
@@ -133,10 +137,15 @@ class RIPointTransformerBlock(nn.Module):
         p, x, o, n, idx, ppf_r, down_idx = pxon  # (n, 3), (n, c), (b), (n, 4)
         identity = x
 
+        # PAM
         x, idx, ppf_r = self.transformer([p, x, o, n, idx, ppf_r], mask)
         #print(idx.dtype)
+
+        # add and norm
         x = self.bn2(x)
         x += identity
+
+        # relu
         x = F.relu(x)
 
         return [p, x, o, n, idx, ppf_r, down_idx]
@@ -149,12 +158,17 @@ class RIPointTransformer(nn.Module):
         self.num_heads = 4
         self.in_planes, planes = c, [64*factor, 128*factor, 256*factor, 256*factor]
         stride, nsample = [1, 4, 4, 4], [8, 16, 16, 16]
+
+        # 构建encoder和decoder
+
+        # enc，blocks分别2333
         self.enc1 = self._make_enc(block, planes[0], blocks[0], self.num_heads, stride=stride[0], nsample=nsample[0], factor=factor)  # N/1
 
         self.enc2 = self._make_enc(block, planes[1], blocks[1], self.num_heads, stride=stride[1], nsample=nsample[1], factor=factor)  # N/4
         self.enc3 = self._make_enc(block, planes[2], blocks[2], self.num_heads, stride=stride[2], nsample=nsample[2], factor=factor)  # N/16
         self.enc4 = self._make_enc(block, planes[3], blocks[3], self.num_heads, stride=stride[3], nsample=nsample[3], factor=factor)  # N/64
 
+        # dec, 2222
         self.dec4 = self._make_dec(block, planes[3], 2, self.num_heads, nsample=nsample[3], factor=factor, is_head=True)  # fusion p5 and p4
         self.dec3 = self._make_dec(block, planes[2], 2, self.num_heads, nsample=nsample[2], factor=factor)  # fusion p4 and p3
         self.dec2 = self._make_dec(block, planes[1], 2, self.num_heads, nsample=nsample[1], factor=factor)  # fusion p3 and p2
@@ -162,6 +176,7 @@ class RIPointTransformer(nn.Module):
         self.nsample = nsample
         self.transformer_architecture = transformer_architecture
 
+        # GLOBAL
         self.global_transformer = GeometricTransformer(256*factor, 256*factor, 256*factor, 4, self.transformer_architecture, sigma_d=0.2, sigma_a=15, angle_k=3, )
         self.occ_proj = nn.Linear(256*factor, 1)
 
@@ -170,6 +185,9 @@ class RIPointTransformer(nn.Module):
 
     def _make_enc(self, block, planes, blocks, num_heads=4, stride=1, nsample=16, factor=1):
         layers = []
+        # 一个encoder的组成：
+        # 一个AAL（降采样加PAM）
+        # 再来n个 PAL（PAM 加Norm加Add，Relu）。
         layers.append(TransitionDown(self.in_planes, planes, num_heads, stride, nsample, factor))
         self.in_planes = planes
         for _ in range(1, blocks):
@@ -177,6 +195,9 @@ class RIPointTransformer(nn.Module):
         return nn.Sequential(*layers)
 
     def _make_dec(self, block, planes, blocks, share_planes=8, nsample=16, factor=1, is_head=False):
+        # decoder
+        # TUL(up加pam)
+        # n个pal
         layers = []
         layers.append(TransitionUp(self.in_planes, None if is_head else planes * block.expansion))
         self.in_planes = planes * block.expansion

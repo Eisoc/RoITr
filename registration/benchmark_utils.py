@@ -235,7 +235,7 @@ def write_est_trajectory(gt_folder, exp_dir, tsfm_est):
     for scene_name in scene_names:
         gt_pairs, gt_traj = read_trajectory(os.path.join(gt_folder,scene_name,'gt.log'))
         est_traj = []
-        for i in range(len(gt_pairs)):
+        for i in range(len(tsfm_est)):
             est_traj.append(tsfm_est[count])
             count+=1
 

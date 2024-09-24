@@ -1,7 +1,7 @@
 import torch
 from functools import partial
 from dataset.common import load_info, collate_fn
-from dataset.tdmatch import TDMatchDataset
+from dataset.tdmatch import TDMatchDataset, HX_Dataset
 from dataset.fdmatch import FDMatch
 
 
@@ -25,7 +25,13 @@ def get_dataset(config):
         val_set = FDMatch(config, 'val', data_augmentation=False)
         testing_set = FDMatch(config, 'test', data_augmentation=False)
     else:
-        raise NotImplementedError
+        info_train = load_info(config.train_info)
+        info_val = load_info(config.val_info)
+        training_set = HX_Dataset(info_train, config, data_augmentation=True, train=True)
+        val_set = HX_Dataset(info_val, config, data_augmentation=False)
+        # info_benchmark = load_info(f'configs/tdmatch/{config.benchmark}.pkl')
+        info_benchmark = load_info(f'configs/tdmatch/9675.pkl')
+        testing_set = HX_Dataset(info_benchmark, config, data_augmentation=False)
 
     return training_set, val_set, testing_set
 

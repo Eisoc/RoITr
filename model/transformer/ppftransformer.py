@@ -208,6 +208,7 @@ class LocalPPFTransformer(nn.Module):
         num_heads,
         dropout=None
     ):
+        # 是PAM！
         r"""Geometric Transformer (GeoTransformer).
         Args:
             input_dim: input feature dimension

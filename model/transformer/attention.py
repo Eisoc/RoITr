@@ -173,6 +173,8 @@ class LocalRPEMultiHeadAttention(nn.Module):
         q = rearrange(q[node_idx], '(b k) (h c) -> b h k c', b=node_idx.shape[0], h=self.num_heads)
         k = rearrange(k[group_idx], 'b k (h c) -> b h k c ', h=self.num_heads)
         v = rearrange(v[group_idx], 'b k (h c) -> b h k c ', h=self.num_heads)
+
+        # P 和 Vp是 E 和 G
         p = rearrange(p, 'b k (h c) -> b h k c', h=self.num_heads)
         vp = rearrange(vp, 'b k (h c) -> b h k c', h=self.num_heads)
 
@@ -181,8 +183,8 @@ class LocalRPEMultiHeadAttention(nn.Module):
         #v = rearrange(self.proj_v(input_v), 'b m (h c) -> b h m c', h=self.num_heads)
         #p = rearrange(self.proj_p(embed_qk), 'b n m (h c) -> b h n m c', h=self.num_heads)
 
-        attention_scores_p = torch.einsum('bhnc,bhmc->bhnm', q, p)
-        attention_scores_e = torch.einsum('bhnc,bhmc->bhnm', q, k)
+        attention_scores_p = torch.einsum('bhnc,bhmc->bhnm', q, p) # PQ点积
+        attention_scores_e = torch.einsum('bhnc,bhmc->bhnm', q, k) # QK点积
 
         attention_scores = (attention_scores_e + attention_scores_p) / self.d_model_per_head ** 0.5
         if attention_factors is not None:
@@ -193,7 +195,9 @@ class LocalRPEMultiHeadAttention(nn.Module):
             attention_scores = attention_scores.masked_fill(key_masks.unsqueeze(1).unsqueeze(1), float('-inf'))
         attention_scores = F.softmax(attention_scores, dim=-1)
         attention_scores = self.dropout(attention_scores)
+        # 总分相加再经过softmax 
 
+        # score应该分别和V和G相乘再加起来，这里一样
         hidden_states = torch.matmul(attention_scores, v + vp)
 
         hidden_states = rearrange(hidden_states, 'b h n c -> (b n) (h c)')

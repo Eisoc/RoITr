@@ -112,9 +112,11 @@ class GeometricTransformer(nn.Module):
             ref_feats: torch.Tensor (B, N, C)
             src_feats: torch.Tensor (B, M, C)
         """
+        # geometry
         ref_embeddings = self.embedding(ref_points)
         src_embeddings = self.embedding(src_points)
 
+        # context
         ref_feats = self.in_proj(ref_feats)
         src_feats = self.in_proj(src_feats)
 

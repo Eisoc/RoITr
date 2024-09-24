@@ -234,6 +234,7 @@ class RPEAttentionLayer(nn.Module):
 
 
 class RPETransformerLayer(nn.Module):
+    # self
     def __init__(self, d_model, num_heads, dropout=None, activation_fn='ReLU'):
         super(RPETransformerLayer, self).__init__()
         self.attention = RPEAttentionLayer(d_model, num_heads, dropout=dropout)
