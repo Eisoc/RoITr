@@ -319,6 +319,39 @@ def soft_assignment(src_xyz, src_feats, tgt_xyz, tgt_feats):
     tgt2src_interpolated_xyz = interpolate(tgt2src_assignment_weights, src_xyz)
     return src2tgt_assignment_confidence, src2tgt_interpolated_xyz, tgt2src_assignment_confidence, tgt2src_interpolated_xyz
 
+import torch
+
+def custom_cross(a, b, dim=-1):
+    """
+    实现与 torch.cross 等效的功能，适用于任意维度张量，但只支持在 3D 向量上进行叉积计算。
+    
+    参数:
+    - a: 第一个输入张量。
+    - b: 第二个输入张量。
+    - dim: 指定要进行叉积计算的维度，默认是最后一维。
+    
+    返回:
+    - 与 a 和 b 相同形状的张量，其中沿指定维度计算了叉积。
+    """
+    assert a.shape == b.shape, "输入张量形状必须相同"
+    assert a.size(dim) == 3 and b.size(dim) == 3, "叉积只能应用于 3D 向量"
+
+    # 使用切片索引操作，确保维度一致
+    a_x, a_y, a_z = a.select(dim, 0), a.select(dim, 1), a.select(dim, 2)
+    b_x, b_y, b_z = b.select(dim, 0), b.select(dim, 1), b.select(dim, 2)
+
+    i = a_y * b_z - a_z * b_y
+    j = a_z * b_x - a_x * b_z
+    k = a_x * b_y - a_y * b_x
+
+    # 使用 torch.stack 保持维度一致，沿着指定维度拼接
+    cross_prod = torch.stack((i, j, k), dim=dim)
+
+    return cross_prod
+
+def custom_atan2(y, x):
+    eps = 1e-6  # 用于避免除零错误
+    return 2 * torch.atan(y / (torch.sqrt(x ** 2 + y ** 2) + x + eps))
 
 def get_geometric_structure_embeddings(points, angle_k=3):
 

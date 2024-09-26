@@ -43,8 +43,16 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
-
-
-          }
+          },
+          {
+            "name": "Test ONNX",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/ONNX_exporter.py",  // 主程序路径
+            "args": ["configs/test/tdmatch.yaml"],   // 参数列表
+            "console": "integratedTerminal",         // 使用终端输出
+            "justMyCode": false,                     // 如果想调试第三方库中的代码，可以设置为 false
+            "cwd": "${workspaceFolder}"              // 当前工作目录为项目根目录
+          },
     ]
 }

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
-
+from lib.utils import custom_cross, custom_atan2
 
 def pairwise_distance(
     x: torch.Tensor, y: torch.Tensor, normalized: bool = False, channel_first: bool = False

@@ -1,4 +1,4 @@
-name: ppf
+name: roitr
 channels:
   - pytorch
   - conda-forge
