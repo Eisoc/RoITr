@@ -5,3 +5,7 @@
 *.pth
 *.pcd
 **/snapshot/*
+./cofigs/benchmarks/*
+**.zip
+**.info
+**.log
