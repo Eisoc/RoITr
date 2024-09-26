@@ -12,7 +12,6 @@ from model.RIGA_v2 import create_model
 from lib.loss import OverallLoss, Evaluator
 from lib.tester import get_trainer
 
-
 def main():
     #########################################################
     # load config
