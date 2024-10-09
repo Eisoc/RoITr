@@ -116,7 +116,12 @@ class RPEMultiHeadAttention(nn.Module):
 
         ################################################################################################################
         # remove the node itself
-        key_idx = torch.from_numpy(np.arange(attention_scores.shape[-2])).to(attention_scores).long()
+
+        # 避免使用numpy
+        # key_idx = torch.from_numpy(np.arange(attention_scores.shape[-2])).to(attention_scores).long()
+        seq_len = attention_scores.shape[-2]
+        key_idx = torch.arange(seq_len, device=attention_scores.device).long()
+
         attention_mask = torch.zeros_like(attention_scores).to(attention_scores).bool()
         attention_mask[:, :, key_idx, key_idx] = True
         attention_scores_ = attention_scores.masked_fill(attention_mask, float('-inf'))

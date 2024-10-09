@@ -149,8 +149,10 @@ def square_distance(src, tgt, normalized=False):
         dist = 2.0 - 2.0 * torch.matmul(src, tgt.permute(0, 2, 1).contiguous())
     else:
         dist = -2. * torch.matmul(src, tgt.permute(0, 2, 1).contiguous())
-        dist += torch.sum(src ** 2, dim=-1).unsqueeze(-1)
-        dist += torch.sum(tgt ** 2, dim=-1).unsqueeze(-2)
+        dist += torch.sum(src ** 2, dim=2, keepdim=True) 
+        dist += torch.sum(tgt ** 2, dim=2, keepdim=True).permute(0, 2, 1)
+        # dist += torch.sum(src ** 2, dim=-1).unsqueeze(-1)
+        # dist += torch.sum(tgt ** 2, dim=-1).unsqueeze(-2)
 
     dist = torch.clamp(dist, min=1e-12, max=None)
     return dist
@@ -482,7 +484,8 @@ def point_to_node_partition(
 
     point_to_node = sq_dist_mat.min(dim=0)[1]  # (N,)
     node_masks = torch.zeros(nodes.shape[0], dtype=torch.bool).cuda()  # (M,)
-    node_masks.index_fill_(0, point_to_node, True)
+    # test_masks = node_masks.index_fill(0, point_to_node, True)
+    node_masks[point_to_node] = True
 
     matching_masks = torch.zeros_like(sq_dist_mat, dtype=torch.bool)  # (M, N)
     point_indices = torch.arange(points.shape[0]).cuda()  # (N,)
@@ -536,7 +539,17 @@ def get_node_occlusion_score(
         src_overlap_score: torch.Tensor (N,)
     """
     src_points = torch.matmul(src_points, rot.T) + trans.T
-    ref_o, src_o = torch.from_numpy(np.array([ref_points.shape[0]])).to(ref_points).int(), torch.from_numpy(np.array([src_points.shape[0]])).to(src_points).int()
+
+    # ref_o, src_o = torch.from_numpy(np.array([ref_points.shape[0]])).to(ref_points).int(), torch.from_numpy(np.array([src_points.shape[0]])).to(src_points).int()
+    # 避免numpy
+    ref_len = ref_points.shape[0]
+    src_len = src_points.shape[0]
+    # if isinstance(ref_len, torch.Tensor):
+    #     ref_len = ref_len.item()
+    # if isinstance(src_len, torch.Tensor):
+    #     src_len = src_len.item()
+    ref_o = torch.tensor([ref_len], device=ref_points.device, dtype=torch.int32)
+    src_o = torch.tensor([src_len], device=src_points.device, dtype=torch.int32)
 
     _, ref_dist = knnquery(1, src_points, ref_points, src_o, ref_o)
     _, src_dist = knnquery(1, ref_points, src_points, ref_o, src_o)
@@ -631,10 +644,16 @@ def get_node_correspondences(
     dist_mat = square_distance(ref_knn_points, src_knn_points) # (B, K, K)
     dist_mat.masked_fill_(~point_mask_mat, 1e12)
     point_overlap_mat = torch.lt(dist_mat, pos_radius ** 2)  # (B, K, K)
-    ref_overlap_counts = torch.count_nonzero(point_overlap_mat.sum(-1), dim=-1).float()  # (B,)
-    src_overlap_counts = torch.count_nonzero(point_overlap_mat.sum(-2), dim=-1).float()  # (B,)
-    ref_overlaps = ref_overlap_counts / ref_knn_masks.sum(-1).float()  # (B,)
-    src_overlaps = src_overlap_counts / src_knn_masks.sum(-1).float()  # (B,)
+    # ref_overlap_counts = torch.count_nonzero(point_overlap_mat.sum(-1), dim=-1).float()  # (B,)
+    ref_overlap_counts = (point_overlap_mat.sum(dim=2, keepdim=True) != 0).squeeze().sum(dim=1, keepdim=True).float().squeeze()  
+    # src_overlap_counts = torch.count_nonzero(point_overlap_mat.sum(-2), dim=-1).float()  # (B,)
+    src_overlap_counts = (point_overlap_mat.sum(dim=1, keepdim=True) != 0).squeeze().sum(dim=1, keepdim=True).float().squeeze()   # (B,)
+    # ref_overlaps = ref_overlap_counts / ref_knn_masks.sum(-1).float()  # (B,)
+    # src_overlaps = src_overlap_counts / src_knn_masks.sum(-1).float() # (B,)
+    ref_squeeze = ref_knn_masks.sum(dim=1, keepdim=True).float().squeeze() 
+    src_squeeze = src_knn_masks.sum(dim=1, keepdim=True).float().squeeze()
+    ref_overlaps = ref_overlap_counts/ ref_squeeze
+    src_overlaps = src_overlap_counts/ src_squeeze
     overlaps = (ref_overlaps + src_overlaps) / 2  # (B,)
 
     overlap_masks = torch.gt(overlaps, 0)

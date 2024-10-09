@@ -53,12 +53,12 @@ class LearnableLogOptimalTransport(nn.Module):
         norm = -torch.log(num_valid_row + num_valid_col)  # (B,)
 
         log_mu = torch.empty(batch_size, num_row + 1).cuda()
-        log_mu[:, :num_row] = norm.unsqueeze(1)
+        log_mu[:, :num_row] = norm.unsqueeze(1).repeat(1, num_row)
         log_mu[:, num_row] = torch.log(num_valid_col) + norm
         log_mu[padded_row_masks] = ninf
 
         log_nu = torch.empty(batch_size, num_col + 1).cuda()
-        log_nu[:, :num_col] = norm.unsqueeze(1)
+        log_nu[:, :num_col] = norm.unsqueeze(1).repeat(1, num_col)
         log_nu[:, num_col] = torch.log(num_valid_row) + norm
         log_nu[padded_col_masks] = ninf
 
@@ -168,8 +168,16 @@ class CoarseMatching(nn.Module):
             src_matching_scores = matching_scores / (matching_scores.sum(dim=0, keepdim=True) + 1e-8)
             matching_scores = ref_matching_scores * src_matching_scores
 
-        num_correspondences = min(self.num_correspondences, matching_scores.numel())
-        corr_scores, corr_indices = matching_scores.view(-1).topk(k=num_correspondences, largest=True)
+        flat_matching_scores = matching_scores.contiguous().view(-1)
+        num_matching_scores = flat_matching_scores.size(0)
+
+        # num_correspondences = min(self.num_correspondences, int(num_matching_scores))
+        # num_correspondences = min(self.num_correspondences, matching_scores.numel())
+        num_correspondences = torch.min(torch.tensor(self.num_correspondences), torch.tensor(num_matching_scores))
+
+        # corr_scores, corr_indices = matching_scores.contiguous().view(-1).topk(k=num_correspondences, largest=True)
+        corr_scores, corr_indices = flat_matching_scores.topk(k=num_correspondences, largest=True)
+
         ref_sel_indices = corr_indices // matching_scores.shape[1]
         src_sel_indices = corr_indices % matching_scores.shape[1]
         # recover original indices

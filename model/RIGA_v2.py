@@ -56,7 +56,14 @@ class RIGA_v2(nn.Module):
 
 
     def forward(self, src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals, rot, trans, src_raw_pcd):
-        src_o, tgt_o = torch.from_numpy(np.array([src_raw_pcd.shape[0]])).to(src_raw_pcd).int(), torch.from_numpy(np.array([tgt_pcd.shape[0]])).to(tgt_pcd).int()
+
+        # src_o, tgt_o = torch.from_numpy(np.array([src_raw_pcd.shape[0]])).to(src_raw_pcd).int(), torch.from_numpy(np.array([tgt_pcd.shape[0]])).to(tgt_pcd).int()
+        # 拒绝numpy操作，防止onnx转换失败
+        src_shape = torch._shape_as_tensor(src_raw_pcd)
+        tgt_shape = torch._shape_as_tensor(tgt_pcd)
+        src_o = src_shape[0].unsqueeze(0).to(dtype=torch.int32)
+        tgt_o = tgt_shape[0].unsqueeze(0).to(dtype=torch.int32)
+
         output_dict = {}
         # 1. get descriptors
         src_node_xyz, src_node_feats, src_pcd, src_point_feats, tgt_node_xyz, tgt_node_feats, tgt_pcd, tgt_point_feats = self.backbone([src_raw_pcd, src_feats, src_o, src_normals], [tgt_pcd, tgt_feats, tgt_o, tgt_normals], src_pcd)

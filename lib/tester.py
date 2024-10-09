@@ -28,7 +28,8 @@ class Tester(Trainer):
         with torch.no_grad():
             for idx in tqdm(range(num_iter)):
                 torch.cuda.synchronize()
-                inputs = c_loader_iter.next()
+                # inputs = c_loader_iter.next()
+                inputs = next(c_loader_iter)
 
                 #######################################
                 # Load inputs to device
@@ -52,7 +53,6 @@ class Tester(Trainer):
 
                 outputs = self.model.forward(src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,
                                              rot, trans, src_raw_pcd)
-
                 data = dict()
                 data['src_raw_pcd'] = src_raw_pcd.cpu()
                 data['src_pcd'], data['tgt_pcd'] = src_pcd.cpu(), tgt_pcd.cpu()

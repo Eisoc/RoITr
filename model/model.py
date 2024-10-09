@@ -32,7 +32,9 @@ class RIPointTransformerLayer(nn.Module):
         else:
             group_idx = idx
 
-        node_idx = torch.from_numpy(np.arange(p.shape[0])).to(p).long()
+        # node_idx = torch.from_numpy(np.arange(p.shape[0])).to(p).long()
+        # 拒绝numpy操作，防止onnx转换失败
+        node_idx = torch.arange(p.size(0), device=p.device, dtype=torch.long)
 
 
         p_r = p[group_idx, :]
@@ -56,8 +58,16 @@ class TransitionDown(nn.Module):
 
     def forward(self, pxon):
         p, x, o, n, _, _, _ = pxon  # (n, 3), (n, c), (b), (n, 3)
+        o = o.contiguous().to('cuda')
         if self.stride != 1:
-            n_o, count = [o[0].item() // self.stride], o[0].item() // self.stride
+
+            # n_o, count = [o[0].item() // self.stride], o[0].item() // self.stride
+            # 拒绝numpy操作，防止onnx转换失败
+            stride_tensor = torch.tensor(self.stride, dtype=o.dtype, device=o.device)
+            n_o = o[0] // stride_tensor
+            count = n_o.clone()
+            n_o = [n_o]
+
             for i in range(1, o.shape[0]):
                 count += (o[i].item() - o[i - 1].item()) // self.stride
                 n_o.append(count)
@@ -71,7 +81,11 @@ class TransitionDown(nn.Module):
             n_o = o
             n_p = p
             n_n = n
-            idx = torch.from_numpy(np.arange(p.shape[0])).to(n_o).long()
+
+            # idx = torch.from_numpy(np.arange(p.shape[0])).to(n_o).long()
+            # 拒绝numpy操作，防止onnx转换失败
+            idx = torch.arange(p.shape[0], device=p.device, dtype=torch.long)
+
 
         group_idx = pointops.queryandgroup(self.nsample, p, n_p, p, None, o, n_o, return_idx=True).long()  # (m, nsample, 3 + 4 + c)
         c_p, c_n = p[group_idx, :], n[group_idx, :]
