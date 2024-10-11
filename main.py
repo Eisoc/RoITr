@@ -1,6 +1,6 @@
 import copy
 import os, argparse, json, shutil
-os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3" # for Pytorch DistributedDataParallel(DDP) training
+os.environ["CUDA_VISIBLE_DEVICES"] = "1, 0, 2, 3" # for Pytorch DistributedDataParallel(DDP) training
 import torch
 from torch import optim
 from torch.utils.data.distributed import DistributedSampler # for Pytorch DistbutedDataParallel(DDP) training

@@ -66,6 +66,8 @@ def benchmark_registration(desc, exp_dir, whichbenchmark, n_points, ransac_with_
         # 1. take the nodes and descriptors
         print(eachfile)
         data = torch.load(eachfile)
+        data = {key: torch.tensor(value).cpu() if not isinstance(value, torch.Tensor) else value.cpu()
+               for key, value in data.items()}
         src_pcd, tgt_pcd = data['src_pcd'], data['tgt_pcd']
         src_nodes, tgt_nodes = data['src_nodes'], data['tgt_nodes']
         src_feats, tgt_feats = data['src_node_desc'], data['tgt_node_desc']

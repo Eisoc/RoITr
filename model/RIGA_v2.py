@@ -179,6 +179,11 @@ class RIGA_v2(nn.Module):
             output_dict['src_corr_points'] = src_corr_points
             output_dict['corr_scores'] = corr_scores
 
+            output_dict['test_raw'] = src_raw_pcd
+
+            # output_dict['node_mask_mat'] = intersect_mat
+            # output_dict["ref_max_dists"] = sel_ref_indices
+            # output_dict["src_max_dists"] = ref_overlap_counts
         return output_dict
 
 

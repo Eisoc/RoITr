@@ -372,7 +372,7 @@ def get_geometric_structure_embeddings(points, angle_k=3):
     anc_vectors = anc_vectors.unsqueeze(3).expand(batch_size, num_point, num_point, angle_k, 3)  # (B, N, N, k, 3)
     sin_values = torch.linalg.norm(torch.cross(ref_vectors, anc_vectors, dim=-1), dim=-1)  # (B, N, N, k)
     cos_values = torch.sum(ref_vectors * anc_vectors, dim=-1)  # (B, N, N, k)
-    angles = torch.atan2(sin_values, cos_values)  # (B, N, N, k)
+    angles = torch.atan2(sin_values, cos_values+ 1e-8)  # (B, N, N, k)
 
     return dist_map, angles
 
@@ -406,19 +406,19 @@ def calc_ppf_gpu(points, point_normals, patches, patch_normals):
     y = torch.sum(point_normals * vec_d, dim=-1, keepdim=True)
     x = torch.cross(point_normals, vec_d, dim=-1)
     x = torch.sqrt(torch.sum(x ** 2, dim=-1, keepdim=True))
-    angle1 = torch.atan2(x, y) / np.pi
+    angle1 = torch.atan2(x, y+ 1e-8) / np.pi
 
     # angle(n2, vec_d)
     y = torch.sum(patch_normals * vec_d, dim=-1, keepdim=True)
     x = torch.cross(patch_normals, vec_d, dim=-1)
     x = torch.sqrt(torch.sum(x ** 2, dim=-1, keepdim=True))
-    angle2 = torch.atan2(x, y) / np.pi
+    angle2 = torch.atan2(x, y+ 1e-8) / np.pi
 
     # angle(n1, n2)
     y = torch.sum(point_normals * patch_normals, dim=-1, keepdim=True)
     x = torch.cross(point_normals, patch_normals, dim=-1)
     x = torch.sqrt(torch.sum(x ** 2, dim=-1, keepdim=True))
-    angle3 = torch.atan2(x, y) / np.pi
+    angle3 = torch.atan2(x, y+ 1e-8) / np.pi
 
     ppf = torch.cat([d, angle1, angle2, angle3], dim=-1) #[n, samples, 4]
     return ppf
@@ -621,16 +621,26 @@ def get_node_correspondences(
     node_mask_mat = torch.logical_and(ref_masks.unsqueeze(1), src_masks.unsqueeze(0))  # (M, N)
 
     # filter out non-overlapping patches using enclosing sphere
-    ref_knn_dists = torch.linalg.norm(ref_knn_points - ref_nodes.unsqueeze(1), dim=-1)  # (M, K)
-    ref_knn_dists.masked_fill_(~ref_knn_masks, 0.0)
-    ref_max_dists = ref_knn_dists.max(1)[0]  # (M,)
-    src_knn_dists = torch.linalg.norm(src_knn_points - src_nodes.unsqueeze(1), dim=-1)  # (N, K)
-    src_knn_dists.masked_fill_(~src_knn_masks, 0.0)
-    src_max_dists = src_knn_dists.max(1)[0]  # (N,)
+    expanded_ref_nodes = ref_nodes.unsqueeze(1).expand_as(ref_knn_points)
+    ref_knn_dists = torch.linalg.norm(ref_knn_points - expanded_ref_nodes, dim=-1)  # (M, K)
+    ref_knn_dists = ref_knn_dists.masked_fill(~ref_knn_masks, 0.0)
+    # ref_max_dists = ref_knn_dists.max(1)[0]  # (M,)
+    ref_max_dists = torch.max(torch.tensor(ref_knn_dists), dim=1)[0]
+
+    expanded_src_nodes = src_nodes.unsqueeze(1).expand_as(src_knn_points)
+    src_knn_dists = torch.linalg.norm(src_knn_points - expanded_src_nodes, dim=-1)  # (N, K)
+    src_knn_dists = src_knn_dists.masked_fill(~src_knn_masks, 0.0)
+    # src_max_dists = src_knn_dists.max(1)[0]  # (N,)
+    src_max_dists = torch.max(src_knn_dists, dim=1)[0]
     dist_mat = torch.sqrt(square_distance(ref_nodes[None, ::], src_nodes[None, ::])[0])  # (M, N)
     intersect_mat = torch.gt(ref_max_dists.unsqueeze(1) + src_max_dists.unsqueeze(0) + pos_radius - dist_mat, 0)
     intersect_mat = torch.logical_and(intersect_mat, node_mask_mat)
-    sel_ref_indices, sel_src_indices = torch.nonzero(intersect_mat, as_tuple=True)
+
+    # sel_ref_indices, sel_src_indices = torch.nonzero(intersect_mat, as_tuple=True)
+    mask = intersect_mat != 0
+    sel_ref_indices = torch.arange(intersect_mat.size(0), device = intersect_mat.device).unsqueeze(1).expand_as(intersect_mat)[mask]
+    sel_src_indices = torch.arange(intersect_mat.size(1), device = intersect_mat.device).unsqueeze(0).expand_as(intersect_mat)[mask]
+
 
     # select potential patch pairs
     ref_knn_masks = ref_knn_masks[sel_ref_indices]  # (B, K)

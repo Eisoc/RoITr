@@ -45,6 +45,24 @@ class RIPointTransformerLayer(nn.Module):
         x = self.transformer(x, node_idx, group_idx, ppf_r)
         return [x, group_idx, ppf_r]
 
+def kmeans_sampling(xyz, num_samples):
+    """
+    输入:
+        xyz: (n, 3)
+        num_samples: 需要采样的点数
+    输出:
+        idx: (num_samples,)
+    """
+    from sklearn.cluster import KMeans
+    xyz_np = xyz.cpu().numpy()
+    kmeans = KMeans(n_clusters=int(num_samples), random_state=0).fit(xyz_np)
+    centers = torch.from_numpy(kmeans.cluster_centers_).to(xyz.device)
+
+    # 找到每个中心点在原始数据中的最近邻
+    dist_matrix = torch.cdist(centers, xyz)  # (num_samples, n)
+    idx = torch.argmin(dist_matrix, dim=1)
+
+    return idx
 
 class TransitionDown(nn.Module):
     '''
@@ -73,6 +91,7 @@ class TransitionDown(nn.Module):
                 n_o.append(count)
             n_o = torch.cuda.IntTensor(n_o)
             idx = pointops.furthestsampling(p, o, n_o).long()  # (m)
+            # idx = kmeans_sampling(p, n_o).long()
             # 降采样
 
             n_p = p[idx, :]  # (m, 3)
@@ -88,6 +107,10 @@ class TransitionDown(nn.Module):
 
 
         group_idx = pointops.queryandgroup(self.nsample, p, n_p, p, None, o, n_o, return_idx=True).long()  # (m, nsample, 3 + 4 + c)
+
+        # group_idx = knnquery_alternative(self.nsample, p, n_p) # (m, nsample)
+        # group_idx = group_idx[:, 1:].contiguous().long()
+
         c_p, c_n = p[group_idx, :], n[group_idx, :]
         ppf = calc_ppf_gpu(n_p, n_n, c_p, c_n) # (m, nsample, 4]
 
@@ -95,6 +118,13 @@ class TransitionDown(nn.Module):
         x = self.transformer(x, idx, group_idx, ppf)
         return [n_p, x, n_o, n_n, None, None, idx]
 
+def knnquery_alternative(nsample, xyz, new_xyz):
+    """
+    Alternative KNN query implementation without custom CUDA for compatibility with ONNX.
+    """
+    dists = torch.cdist(new_xyz, xyz)  # (m, n), calculate pairwise distances
+    _, idx = torch.topk(dists, nsample, largest=False, sorted=False)  # (m, nsample)
+    return idx
 
 class TransitionUp(nn.Module):
     '''

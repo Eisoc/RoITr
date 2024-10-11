@@ -2,7 +2,7 @@ import torch
 import torch.onnx
 import copy
 import os, argparse, json, shutil
-os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3" # for Pytorch DistributedDataParallel(DDP) training
+os.environ["CUDA_VISIBLE_DEVICES"] = " 1, 0, 2, 3" # for Pytorch DistributedDataParallel(DDP) training
 import torch
 from torch import optim
 from torch.utils.data.distributed import DistributedSampler # for Pytorch DistbutedDataParallel(DDP) training
@@ -63,15 +63,16 @@ state = torch.load('weights/model_3dmatch.pth')
 config.model.load_state_dict({k.replace('module.', ''): v for k, v in state['state_dict'].items()})
 config.model.eval()  # 切换到评估模式
 
-n_input = 12340
+n_input = 16649
+n_input2 = 18977
 
-src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd = torch.randn(n_input, 3).cuda(), torch.randn(n_input, 3).cuda(), torch.randn(n_input, 1).cuda(), torch.randn(n_input, 1).cuda(), torch.randn(n_input, 3).cuda(), torch.randn(n_input, 3).cuda(), torch.randn(3, 3).cuda(), torch.randn(3, 1).cuda(), torch.randn(n_input, 3).cuda()
+src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd = torch.randn(n_input, 3).cuda(), torch.randn(n_input2, 3).cuda(), torch.randn(n_input, 1).cuda(), torch.randn(n_input2, 1).cuda(), torch.randn(n_input, 3).cuda(), torch.randn(n_input2, 3).cuda(), torch.randn(3, 3).cuda(), torch.randn(3, 1).cuda(), torch.randn(n_input, 3).cuda()
 dummy_input = src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd  
 
 # 注册未支持算子
 torch.onnx.register_custom_op_symbolic("aten::lift_fresh", lambda g, x: x, 13)
 
-output_names = ['src_points', 'tgt_points', 'src_nodes', 'tgt_nodes', 'src_point_feats', 'tgt_point_feats', 'src_node_feats', 'tgt_node_feats', 'gt_node_corr_indices', 'gt_node_corr_overlaps', 'gt_tgt_node_occ', 'gt_src_node_occ', 'src_node_corr_indices', 'tgt_node_corr_indices', 'src_node_corr_knn_points', 'tgt_node_corr_knn_points', 'src_node_corr_knn_masks', 'tgt_node_corr_knn_masks', 'matching_scores', 'tgt_corr_points', 'src_corr_points', 'corr_scores']
+output_names = ['src_points', 'tgt_points', 'src_nodes', 'tgt_nodes', 'src_point_feats', 'tgt_point_feats', 'src_node_feats', 'tgt_node_feats', 'gt_node_corr_indices', 'gt_node_corr_overlaps', 'gt_tgt_node_occ', 'gt_src_node_occ', 'src_node_corr_indices', 'tgt_node_corr_indices', 'src_node_corr_knn_points', 'tgt_node_corr_knn_points', 'src_node_corr_knn_masks', 'tgt_node_corr_knn_masks', 'matching_scores', 'tgt_corr_points', 'src_corr_points', 'corr_scores',"test_raw"]
 
 dynamic_axes = {
     'src_pcd': {0: 'n'},
@@ -94,10 +95,10 @@ torch.onnx.export(wrapped_model,                   # 要转换的模型
                   f"RoITr{n_input}.onnx",       # 输出文件名
                   export_params=True,      # 导出模型权重
                   opset_version=13,        
-                  do_constant_folding=False,  # 常量折叠优化
+                  do_constant_folding=True,  # 常量折叠优化
                   input_names = ["src_pcd", "tgt_pcd", "src_feats", "tgt_feats", "src_normals", "tgt_normals","rot", "trans", "src_raw_pcd"], # 输入名
                   output_names = output_names, # 输出名 
-                  dynamic_axes=dynamic_axes,
+                  # dynamic_axes=dynamic_axes,
                   verbose=True
                                 )
 
@@ -105,16 +106,17 @@ import onnxruntime as ort
 import onnx
 
 # 加载 ONNX 模型
-ort_session = ort.InferenceSession("RoITr12340.onnx")
+ort_session = ort.InferenceSession("RoITr16649.onnx")
 
-num = 12340
+num = 16649
+num2 = 18977
 
 src_pcd = torch.randn(num, 3).cpu().numpy()  # n=500，形状 [500, 3]
-tgt_pcd = torch.randn(num, 3).cpu().numpy()  # n=500，形状 [500, 3]
+tgt_pcd = torch.randn(num2, 3).cpu().numpy()  # n=500，形状 [500, 3]
 src_feats = torch.randn(num, 1).cpu().numpy()  # n=500，形状 [500, 1]
-tgt_feats = torch.randn(num, 1).cpu().numpy()  # n=500，形状 [500, 1]
+tgt_feats = torch.randn(num2, 1).cpu().numpy()  # n=500，形状 [500, 1]
 src_normals = torch.randn(num, 3).cpu().numpy()  # n=500，形状 [500, 3]
-tgt_normals = torch.randn(num, 3).cpu().numpy()  # n=500，形状 [500, 3]
+tgt_normals = torch.randn(num2, 3).cpu().numpy()  # n=500，形状 [500, 3]
 rot = torch.randn(3, 3).cpu().numpy()  # 形状 [3, 3]
 trans = torch.randn(3, 1).cpu().numpy()  # 形状 [3, 1]
 src_raw_pcd = torch.randn(num, 3).cpu().numpy() 
@@ -134,7 +136,7 @@ input_feed = {
 
 
 
-model = onnx.load("RoITr12340.onnx")
+model = onnx.load("RoITr16649.onnx")
 
 # 检查模型输入形状
 for input in model.graph.input:
