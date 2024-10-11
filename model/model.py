@@ -90,8 +90,8 @@ class TransitionDown(nn.Module):
                 count += (o[i].item() - o[i - 1].item()) // self.stride
                 n_o.append(count)
             n_o = torch.cuda.IntTensor(n_o)
-            idx = pointops.furthestsampling(p, o, n_o).long()  # (m)
-            # idx = kmeans_sampling(p, n_o).long()
+            # idx = pointops.furthestsampling(p, o, n_o).long()  # (m)
+            idx = kmeans_sampling(p, n_o).long()
             # 降采样
 
             n_p = p[idx, :]  # (m, 3)

@@ -38,7 +38,7 @@ class TDMatchDataset(data.Dataset):
         # maximum noise used in data augmentation
         self.augment_noise = config.augment_noise
         # the maximum number allowed in each single frame of point cloud
-        self.points_lim = 30000
+        self.points_lim = 16649
         # can be in ['train', 'val', 'test']
         self.mode = config.mode
         # original benchmark or rotated benchmark

@@ -15,31 +15,36 @@ import os
 # data2 = torch.load(data2)
 
 result_path = "/home/bing/RoITr/snapshot/HX_ripoint_transformer_test/3DLoMatch"
-result_name = "1"
-result = os.path.join(result_path, result_name + ".pth")
-result = torch.load(result)
-result = {key: torch.tensor(value).cpu() if not isinstance(value, torch.Tensor) else value.cpu()
-        for key, value in result.items()}
-print(len(result))
-src_points = np.array(result['src_pcd'], dtype=np.float64)
-tgt_points = np.array(result['tgt_pcd'], dtype=np.float64)
-rot = np.array(result['rot'], dtype=np.float64)
-trans = np.array(result['trans'], dtype=np.float64) 
+# result_name = "1"
+result_files = [f for f in os.listdir(result_path) if f.endswith(".pth")]
 
-transformed_src_points = (rot @ src_points.T).T + trans.T
 
-src_pcd = o3d.geometry.PointCloud()
-tgt_pcd = o3d.geometry.PointCloud()
+for result_name in result_files:
+    result_file = os.path.join(result_path, result_name)
+    result = torch.load(result_file)
+    result = {key: torch.tensor(value).cpu() if not isinstance(value, torch.Tensor) else value.cpu()
+              for key, value in result.items()}
+    
+    src_points = np.array(result['src_pcd'], dtype=np.float64)
+    tgt_points = np.array(result['tgt_pcd'], dtype=np.float64)
+    rot = np.array(result['rot'], dtype=np.float64)
+    trans = np.array(result['trans'], dtype=np.float64)
 
-src_pcd.points = o3d.utility.Vector3dVector(transformed_src_points)
-tgt_pcd.points = o3d.utility.Vector3dVector(tgt_points)
+    transformed_src_points = (rot @ src_points.T).T + trans.T
 
-src_pcd.paint_uniform_color([1, 0, 0]) 
-tgt_pcd.paint_uniform_color([0, 1, 0]) 
+    src_pcd = o3d.geometry.PointCloud()
+    tgt_pcd = o3d.geometry.PointCloud()
 
-combined_pcd = src_pcd + tgt_pcd
-o3d.io.write_point_cloud(f"{result_name}.pcd", combined_pcd)
-print(f"点云已保存{result_name}")
+    src_pcd.points = o3d.utility.Vector3dVector(transformed_src_points)
+    tgt_pcd.points = o3d.utility.Vector3dVector(tgt_points)
+
+    src_pcd.paint_uniform_color([1, 0, 0]) 
+    tgt_pcd.paint_uniform_color([0, 1, 0]) 
+
+    combined_pcd = src_pcd + tgt_pcd
+    output_file = os.path.join(result_path, f"{os.path.splitext(result_name)[0]}.pcd")
+    o3d.io.write_point_cloud(output_file, combined_pcd)
+    print(f"点云已保存: {output_file}")
 
 
 # 加载 .pth 

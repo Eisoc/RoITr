@@ -64,7 +64,7 @@ config.model.load_state_dict({k.replace('module.', ''): v for k, v in state['sta
 config.model.eval()  # 切换到评估模式
 
 n_input = 16649
-n_input2 = 18977
+n_input2 = 16649
 
 src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd = torch.randn(n_input, 3).cuda(), torch.randn(n_input2, 3).cuda(), torch.randn(n_input, 1).cuda(), torch.randn(n_input2, 1).cuda(), torch.randn(n_input, 3).cuda(), torch.randn(n_input2, 3).cuda(), torch.randn(3, 3).cuda(), torch.randn(3, 1).cuda(), torch.randn(n_input, 3).cuda()
 dummy_input = src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd  
@@ -109,7 +109,7 @@ import onnx
 ort_session = ort.InferenceSession("RoITr16649.onnx")
 
 num = 16649
-num2 = 18977
+num2 = 16649
 
 src_pcd = torch.randn(num, 3).cpu().numpy()  # n=500，形状 [500, 3]
 tgt_pcd = torch.randn(num2, 3).cpu().numpy()  # n=500，形状 [500, 3]
