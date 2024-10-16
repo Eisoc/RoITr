@@ -94,6 +94,42 @@ def kmeans_sampling(xyz, num_samples):
 
     return idx
 
+def grid_sampling(xyz, num_samples):
+    """
+    使用网格采样(Voxel Grid Sampling)实现四分之一下采样
+    输入:
+        xyz: (n, 3) 的 torch 张量
+        num_samples: 目标下采样的点数
+    输出:
+        idx: (num_samples,) 的采样索引
+    """
+    n, _ = xyz.shape
+
+    # 计算体素大小,3D网格，所以得到边长开三次根号
+    voxel_size = (xyz.max(dim=0)[0] - xyz.min(dim=0)[0]) / (num_samples ** (1/3))
+    voxel_size /= 2 # 实验后发现这个尺寸大概能保证下采样四分之一
+
+    voxel_grid = ((xyz - xyz.min(dim=0)[0]) / voxel_size).floor().long()
+
+    # 获取每个体素中的唯一点
+    _, unique_indices = np.unique(voxel_grid.cpu().numpy(), axis=0, return_index=True)
+    unique_indices = torch.tensor(unique_indices, device=xyz.device)
+
+    # 如果采样点数量多于目标点数，随机下采样
+    if len(unique_indices) > num_samples:
+        sampled_indices = torch.randperm(len(unique_indices))[:num_samples]
+        final_indices = unique_indices[sampled_indices]
+    
+    # 如果采样点数量少于目标点数，从原始数据中随机补充
+    elif len(unique_indices) < num_samples:
+        additional_indices = torch.randperm(n, device=xyz.device)[:(num_samples - len(unique_indices))]
+        final_indices = torch.cat([unique_indices, additional_indices])
+    
+    else:
+        final_indices = unique_indices
+
+    return final_indices
+
 class TransitionDown(nn.Module):
     '''
     Down-sampling
@@ -121,7 +157,7 @@ class TransitionDown(nn.Module):
                 n_o.append(count)
             n_o = torch.cuda.IntTensor(n_o)
             # idx = pointops.furthestsampling(p, o, n_o).long()  # (m)
-            idx = kmeans_sampling(p, n_o).long()
+            idx = grid_sampling(p, n_o).long()
             # 降采样
 
             n_p = p[idx, :]  # (m, 3)

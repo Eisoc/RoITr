@@ -245,7 +245,7 @@ class Trainer(object):
         idx = 0
         is_distributed = dist.is_initialized()
         rank = dist.get_rank() if is_distributed else 0
-        pbar = tqdm(range(num_iter), desc=f"GPU {rank} Progress", position=rank, leave=True)
+        pbar = tqdm(range(num_iter), desc=f"GPU {rank} Progress", position=rank+1, leave=True)
         for c_iter in pbar:
             # inputs = c_loader_iter.next()
             # Pytorch version update, 
@@ -278,8 +278,8 @@ class Trainer(object):
                 stats_meter[key].update(value)
 
             torch.cuda.empty_cache()
-
-            if self.local_rank <= 0 and self.verbose and (c_iter + 1) % self.verbose_freq == 0:
+            # tqdm.write(f"Epoch {epoch}/{self.max_epoch} | GPU {rank} | Iteration {c_iter}")
+            if self.local_rank < 0 and self.verbose and (c_iter + 1) % self.verbose_freq == 0:
                 cur_iter = num_iter * (epoch - 1) + c_iter
                 for key, value in stats_meter.items():
                     self.writer.add_scalar(f'{phase}/{key}', value.avg, cur_iter)
@@ -306,7 +306,8 @@ class Trainer(object):
         is_distributed = dist.is_initialized()
         rank = dist.get_rank() if is_distributed else 0
         print(f'GPU {rank} start training...')
-        for epoch in range(self.start_epoch, self.max_epoch):
+        for epoch in tqdm(range(self.start_epoch, self.max_epoch), desc=f"Epoch Progress", position=0, leave=True):
+        # for epoch in range(self.start_epoch, self.max_epoch):
             if self.local_rank > -1:
                 self.loader['train'].sampler.set_epoch(epoch)
 

@@ -21,8 +21,8 @@ optim:
 data:
   dataset: hx
   root: data/hx
-  train_info: configs/tdmatch/9675.pkl
-  val_info: configs/tdmatch/9675.pkl
+  train_info: configs/tdmatch/train_hx.pkl
+  val_info: configs/tdmatch/val_hx.pkl
   augment_noise: 0.005
   benchmark: 3DLoMatch
   rotated: False
@@ -66,7 +66,7 @@ eval:
 train:
   max_epoch: 150
   batch_size: 1
-  training_max_iter: 3500
+  training_max_iter: 3500 # 实际没用到
   val_max_iter: 500
   scheduler_interval: 1
   snapshot_interval: 1

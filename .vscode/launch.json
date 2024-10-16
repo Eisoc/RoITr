@@ -107,11 +107,22 @@
         "--nproc_per_node=2"
       ]
     },
-    {
-      "name": "Python Debugger: Python File",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${file}"
-    }
+    // {
+    //   "name": "Multi_GPU(2)_Train TDMATCH",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/main.py",
+    //   "console": "integratedTerminal",
+    //   "args": [
+    //     "configs/train/tdmatch.yaml",
+    //     "--use_DDP",
+    //     "1"
+    //   ],
+    //   "pythonArgs": [
+    //     "-m",
+    //     "torch.distributed.run",
+    //     "--nproc_per_node=2"
+    //   ]
+    // },
   ]
 }

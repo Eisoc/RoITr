@@ -30,7 +30,7 @@ def get_dataset(config):
         training_set = HX_Dataset(info_train, config, data_augmentation=False, train=True) # 数据足够多没必要augmentation
         val_set = HX_Dataset(info_val, config, data_augmentation=False)
         # info_benchmark = load_info(f'configs/tdmatch/{config.benchmark}.pkl')
-        info_benchmark = load_info(f'configs/tdmatch/9675.pkl')
+        info_benchmark = load_info(f'configs/tdmatch/test_hx.pkl')
         testing_set = HX_Dataset(info_benchmark, config, data_augmentation=False)
 
     return training_set, val_set, testing_set
