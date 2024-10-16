@@ -2,7 +2,7 @@ import torch
 import torch.onnx
 import copy
 import os, argparse, json, shutil
-os.environ["CUDA_VISIBLE_DEVICES"] = " 1, 0, 2, 3" # for Pytorch DistributedDataParallel(DDP) training
+os.environ["CUDA_VISIBLE_DEVICES"] = " 0, 1" # for Pytorch DistributedDataParallel(DDP) training
 import torch
 from torch import optim
 from torch.utils.data.distributed import DistributedSampler # for Pytorch DistbutedDataParallel(DDP) training
@@ -63,8 +63,8 @@ state = torch.load('weights/model_3dmatch.pth')
 config.model.load_state_dict({k.replace('module.', ''): v for k, v in state['state_dict'].items()})
 config.model.eval()  # 切换到评估模式
 
-n_input = 16649
-n_input2 = 16649
+n_input = 200000
+n_input2 = 200000
 
 src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd = torch.randn(n_input, 3).cuda(), torch.randn(n_input2, 3).cuda(), torch.randn(n_input, 1).cuda(), torch.randn(n_input2, 1).cuda(), torch.randn(n_input, 3).cuda(), torch.randn(n_input2, 3).cuda(), torch.randn(3, 3).cuda(), torch.randn(3, 1).cuda(), torch.randn(n_input, 3).cuda()
 dummy_input = src_pcd, tgt_pcd, src_feats, tgt_feats, src_normals, tgt_normals,rot, trans, src_raw_pcd  
@@ -106,10 +106,10 @@ import onnxruntime as ort
 import onnx
 
 # 加载 ONNX 模型
-ort_session = ort.InferenceSession("RoITr16649.onnx")
+ort_session = ort.InferenceSession("RoITr200000.onnx")
 
-num = 16649
-num2 = 16649
+num = 200000
+num2 = 200000
 
 src_pcd = torch.randn(num, 3).cpu().numpy()  # n=500，形状 [500, 3]
 tgt_pcd = torch.randn(num2, 3).cpu().numpy()  # n=500，形状 [500, 3]
@@ -136,7 +136,7 @@ input_feed = {
 
 
 
-model = onnx.load("RoITr16649.onnx")
+model = onnx.load("RoITr200000.onnx")
 
 # 检查模型输入形状
 for input in model.graph.input:

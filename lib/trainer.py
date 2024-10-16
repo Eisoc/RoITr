@@ -4,7 +4,7 @@ from tensorboardX import SummaryWriter
 from lib.utils import AverageMeter, Logger, to_o3d_pcd
 from tqdm import tqdm
 import open3d as o3d
-
+import torch.distributed as dist
 
 class Trainer(object):
     '''
@@ -243,8 +243,13 @@ class Trainer(object):
 
         self.optimizer.zero_grad()
         idx = 0
-        for c_iter in tqdm(range(num_iter)):
-            inputs = c_loader_iter.next()
+        is_distributed = dist.is_initialized()
+        rank = dist.get_rank() if is_distributed else 0
+        pbar = tqdm(range(num_iter), desc=f"GPU {rank} Progress", position=rank, leave=True)
+        for c_iter in pbar:
+            # inputs = c_loader_iter.next()
+            # Pytorch version update, 
+            inputs = next(c_loader_iter)
             for k, v in inputs.items():
                 if type(v) == list:
                     inputs[k] = [item.to(self.device) for item in v]
@@ -290,6 +295,7 @@ class Trainer(object):
                 message += f'{key}: {value.avg:.4f}\t'
 
             self.logger.write(message + '\n')
+        pbar.close()
         return stats_meter
 
     def train(self):
@@ -297,7 +303,9 @@ class Trainer(object):
         Train
         :return:
         '''
-        print('start training...')
+        is_distributed = dist.is_initialized()
+        rank = dist.get_rank() if is_distributed else 0
+        print(f'GPU {rank} start training...')
         for epoch in range(self.start_epoch, self.max_epoch):
             if self.local_rank > -1:
                 self.loader['train'].sampler.set_epoch(epoch)

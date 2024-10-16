@@ -1,58 +1,117 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Test tdmatch",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.py",  // 主程序路径
-            "args": ["configs/test/tdmatch.yaml"],   // 参数列表
-            "console": "integratedTerminal",         // 使用终端输出
-            "justMyCode": false,                     // 如果想调试第三方库中的代码，可以设置为 false
-            "cwd": "${workspaceFolder}"              // 当前工作目录为项目根目录
-          },
-          {
-            "name": "Test hx",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.py",  // 主程序路径
-            "args": ["configs/test/hx_pretrain.yaml"],   // 参数列表
-            "console": "integratedTerminal",         // 使用终端输出
-            "justMyCode": false,                     // 如果想调试第三方库中的代码，可以设置为 false
-            "cwd": "${workspaceFolder}"              // 当前工作目录为项目根目录
-          },
-          {
-            "name": "test pose_estimation",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/registration/evaluate_registration_c2f.py",
-            "args": [
-                "--source_path", "./snapshot/HX_ripoint_transformer_test/3DLoMatch",
-                "--benchmark", "3DLoMatch",
-                "--n_points", "10000"
-            ],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}"
-          },
-          {
-            "name": "Test ONNX",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/ONNX_exporter.py",  // 主程序路径
-            "args": ["configs/test/tdmatch.yaml"],   // 参数列表
-            "console": "integratedTerminal",         // 使用终端输出
-            "justMyCode": false,                     // 如果想调试第三方库中的代码，可以设置为 false
-            "cwd": "${workspaceFolder}"              // 当前工作目录为项目根目录
-          },
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to process",
+      "type": "debugpy",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    },
+    {
+      "name": "Python Debugger: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Test tdmatch",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "args": [
+        "configs/test/tdmatch.yaml"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Test hx",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "args": [
+        "configs/test/hx_pretrain.yaml"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "test pose_estimation",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/registration/evaluate_registration_c2f.py",
+      "args": [
+        "--source_path",
+        "./snapshot/HX_ripoint_transformer_test/3DLoMatch",
+        "--benchmark",
+        "3DLoMatch",
+        "--n_points",
+        "10000"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Test ONNX",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/ONNX_exporter.py",
+      "args": [
+        "configs/test/tdmatch.yaml"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Train tdmatch",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "args": [
+        "configs/train/tdmatch.yaml"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Train hx",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "args": [
+        "configs/train/hx_pretrain.yaml"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Multi_GPU(2)_Train hx",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "console": "integratedTerminal",
+      "args": [
+        "configs/train/hx_pretrain.yaml",
+        "--use_DDP",
+        "1"
+      ],
+      "pythonArgs": [
+        "-m",
+        "torch.distributed.run",
+        "--nproc_per_node=2"
+      ]
+    },
+    {
+      "name": "Python Debugger: Python File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}"
+    }
+  ]
 }

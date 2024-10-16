@@ -3,16 +3,16 @@ import open3d as o3d
 import numpy as np
 import os
 
-# data_path = "/home/bing/RoITr/data/indoor/train/7-scenes-chess"
-# data_name = "cloud_bin_0"
-# data = os.path.join(data_path, data_name + ".pth")
-# data = torch.load(data)
-# print(len(data))
+data_path = "/home/bing/RoITr/data/indoor/train/7-scenes-chess"
+data_name = "cloud_bin_0"
+data = os.path.join(data_path, data_name + ".pth")
+data = torch.load(data)
+print(len(data))
 
-# data_path2 = "/home/bing/RoITr/data/indoor/test/7-scenes-redkitchen"
-# data_name2 = "cloud_bin_1"
-# data2 = os.path.join(data_path2, data_name2 + ".pth")
-# data2 = torch.load(data2)
+data_path2 = "/home/bing/RoITr/data/indoor/test/7-scenes-redkitchen"
+data_name2 = "cloud_bin_1"
+data2 = os.path.join(data_path2, data_name2 + ".pth")
+data2 = torch.load(data2)
 
 result_path = "/home/bing/RoITr/snapshot/HX_ripoint_transformer_test/3DLoMatch"
 # result_name = "1"

@@ -45,6 +45,36 @@ class RIPointTransformerLayer(nn.Module):
         x = self.transformer(x, node_idx, group_idx, ppf_r)
         return [x, group_idx, ppf_r]
 
+# import faiss
+# def kmeans_faiss(xyz, num_samples):
+#     """
+#     使用 Faiss
+#     输入:
+#         xyz: (n, 3) 的 torch 张量
+#         num_samples: 需要采样的点数
+#     输出:
+#         idx: (num_samples,) 的采样索引
+#     """
+#     device_xyz = xyz.device
+#     xyz = xyz.cpu().numpy().astype('float32')
+#     n, d = xyz.shape
+
+#     # 初始化 KMeans
+#     kmeans = faiss.Kmeans(d, int(num_samples), gpu=True, niter=20, verbose=False)
+#     kmeans.train(xyz)
+
+#     # 获取质心
+#     centers = kmeans.centroids
+
+#     # 计算质心到原始数据点的最近距离
+#     dists = faiss.pairwise_distances(centers, xyz)
+
+#     # 找到每个质心最近的点
+#     idx = np.argmin(dists, axis=1)
+
+#     return torch.tensor(idx, dtype=torch.long, device=device_xyz)
+
+
 def kmeans_sampling(xyz, num_samples):
     """
     输入:
@@ -53,9 +83,9 @@ def kmeans_sampling(xyz, num_samples):
     输出:
         idx: (num_samples,)
     """
-    from sklearn.cluster import KMeans
+    from sklearn.cluster import MiniBatchKMeans, KMeans
     xyz_np = xyz.cpu().numpy()
-    kmeans = KMeans(n_clusters=int(num_samples), random_state=0).fit(xyz_np)
+    kmeans = MiniBatchKMeans(n_clusters=int(num_samples), n_init=3, random_state=0, batch_size=500).fit(xyz_np)
     centers = torch.from_numpy(kmeans.cluster_centers_).to(xyz.device)
 
     # 找到每个中心点在原始数据中的最近邻
@@ -104,7 +134,6 @@ class TransitionDown(nn.Module):
             # idx = torch.from_numpy(np.arange(p.shape[0])).to(n_o).long()
             # 拒绝numpy操作，防止onnx转换失败
             idx = torch.arange(p.shape[0], device=p.device, dtype=torch.long)
-
 
         group_idx = pointops.queryandgroup(self.nsample, p, n_p, p, None, o, n_o, return_idx=True).long()  # (m, nsample, 3 + 4 + c)
 
@@ -160,7 +189,7 @@ class TransitionUp(nn.Module):
         else:
             p1, x1, o1 = pxo1
             p2, x2, o2 = pxo2
-            x = self.linear1(x1) + pointops.interpolation(p2, p1, self.linear2(x2), o2, o1)
+            x = self.linear1(x1) + pointops.f_interpolation(p2, p1, self.linear2(x2), o2, o1)
         return x
 
 

@@ -1,6 +1,6 @@
 import copy
 import os, argparse, json, shutil
-os.environ["CUDA_VISIBLE_DEVICES"] = "1, 0, 2, 3" # for Pytorch DistributedDataParallel(DDP) training
+os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1" # for Pytorch DistributedDataParallel(DDP) training
 import torch
 from torch import optim
 from torch.utils.data.distributed import DistributedSampler # for Pytorch DistbutedDataParallel(DDP) training
@@ -17,20 +17,22 @@ def main():
     # load config
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str, help='Path to config file.')
-    parser.add_argument("--local_rank", type=int, default=-1) # for DDP training
+    parser.add_argument("--use_DDP", type=int, default=-1) # for DDP training 
+    # torchrun --nproc_per_node=2 main.py configs/train/hx_pretrain.yaml --local_rank 1
     args = parser.parse_args()
     config = load_config(args.config)
-    config['local_rank'] = args.local_rank
-    #########################################################
-    #set cuda devices for both DDP training and single-GPU training
-    if config['local_rank'] > -1:
-        torch.cuda.set_device(config['local_rank'])
-        config['device'] = torch.device('cuda', config['local_rank'])
-        torch.distributed.init_process_group(backend='nccl')
-
-    else:
+    if args.use_DDP == -1:
+        config['local_rank'] = args.use_DDP
         torch.cuda.set_device(0)
         config['device'] = torch.device('cuda', 0)
+    else:
+        config['local_rank'] = int(os.environ["LOCAL_RANK"])
+    #########################################################
+    #set cuda devices for both DDP training and single-GPU training
+        torch.cuda.set_device(config['local_rank'])
+        config['device'] = torch.device('cuda', config['local_rank'])
+        torch.distributed.init_process_group(backend="nccl")
+
 
     ##########################################################
     setup_seed(42) # fix the seed
@@ -72,7 +74,7 @@ def main():
         print(config.model)
     # for PyTorch DistbutedDataParallel(DDP) training
     if config.local_rank >= 0:
-        config.model = torch.nn.parallel.DistributedDataParallel(config.model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
+        config.model = torch.nn.parallel.DistributedDataParallel(config.model, device_ids=[config['local_rank'] ], output_device=config['local_rank'], find_unused_parameters=True)
 
 
     # create optimizer

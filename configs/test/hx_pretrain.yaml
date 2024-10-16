@@ -21,8 +21,8 @@ optim:
 data:
   dataset: hx
   root: data/hx
-  train_info: configs/tdmatch/train_info.pkl
-  val_info: configs/tdmatch/val_info.pkl
+  train_info: configs/tdmatch/9675.pkl
+  val_info: configs/tdmatch/9675.pkl
   augment_noise: 0.
   benchmark: 3DLoMatch
   rotated: False
